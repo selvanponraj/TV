@@ -1,6 +1,7 @@
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © selvanponraj
 
+
 //study("ORB-Gaurav-Selvan-Latest")
 //@version=4   
 strategy(title="ORB-Gaurav-Selvan-3in1", shorttitle="ORB-15mins-with conditions",overlay=true,default_qty_type=strategy.fixed, default_qty_value=100)  
@@ -43,6 +44,9 @@ var int thrid_hour=na
 var int third_min=na
 var int fourth_hour=na
 var int fourth_min=na
+
+var int start_entry=na
+var int close_entry=na
     
 
 adopt(r, s) => security(syminfo.tickerid, r, s)
@@ -60,7 +64,7 @@ us_sessSpec = input("0930-1600", type=input.session)
 us_start_high = valuewhen(is_newbar(highTimeFrame,us_sessSpec),high,0)    
 us_start_low = valuewhen(is_newbar(highTimeFrame, us_sessSpec),low,0)
 
-if(syminfo.currency == 'GBX')
+if(syminfo.currency == 'GBX') or (syminfo.currency == 'GBP')
     start_high := adopt('15', uk_start_high)
     start_low := adopt('15', uk_start_low)
     second_hour:=08
@@ -120,7 +124,6 @@ calculated_low = min(locLow_2,locLow_3,locLow_4)
 percentdifference = 5
 dif_High_Low = (start_high - start_low) >= (start_high/100*percentdifference) ? 1 : 0
 
-
 plotSignals = false   
    
 if calculated_high <  start_high and calculated_low > start_low and dif_High_Low == 0
@@ -128,25 +131,20 @@ if calculated_high <  start_high and calculated_low > start_low and dif_High_Low
    
 // plotshape(plotSignals ? crossover(high, start_high) : na, style=shape.triangleup, location=location.belowbar, color=color.blue, text="Buy", textcolor=color.blue)   
 // plotshape(plotSignals ? crossover(start_low, low) : na, style=shape.triangledown, location=location.abovebar, color=color.red, text="Sell", textcolor=color.blue) 
- 
- 
+
 // Strategy Entry-Exit condition 
  
-if (crossover(close, start_high)) and (calculated_high <  start_high and calculated_low > start_low and hour <= 12 and dif_High_Low == 0) 
-    strategy.entry(id = "long_entry", long = true,stop = start_low,when=time_cond ) 
-    strategy.close(id = "long_entry", when = (crossover(start_low, close))) 
- 
-if (crossover(start_low, close)) and (calculated_high <  start_high and calculated_low > start_low and hour <= 12 and dif_High_Low == 0) 
-    strategy.entry(id = "short_entry", long = false,stop = start_high,when = time_cond) 
-    strategy.close(id = "short_entry", when = (crossover(close, start_high))) 
+if (crossover(close, start_high)) and (calculated_high <  start_high and calculated_low > start_low and dif_High_Low == 0 and hour >= second_hour and hour<=12) 
+    strategy.entry(id = "long_entry", long = true,  when=time_cond) 
+
+if (crossover(start_low, close)) and (calculated_high <  start_high and calculated_low > start_low and dif_High_Low == 0 and hour >= second_hour and hour<=12) 
+    strategy.entry(id = "short_entry", long = false, when = time_cond) 
+
+strategy.close(id = "long_entry", when = (crossover(start_low, close)))
+strategy.close(id = "short_entry", when = (crossover(close, start_high))) 
 
 if (hour == 15) 
     strategy.close_all() 
  
 // Don't fill more than one orders in an intra-day session 
 strategy.risk.max_intraday_filled_orders(count=2)
-
-
-
-
-
