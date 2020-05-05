@@ -1,0 +1,136 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © gaurav_baheti
+//@version=4 
+
+//study("ORB 10AM Trading Strategy (Gaurav Baheti)")
+  
+strategy(title="ORB 10AM Trading Strategy (Gaurav Baheti)", shorttitle="ORB 10AM Trading Strategy (Gaurav Baheti)",overlay=true,default_qty_type=strategy.fixed, default_qty_value=100)  
+
+//////////////////////////////////////////////////////////////////////////////// 
+// BACKTESTING RANGE 
+  
+// From Date Inputs 
+fromDay = input(defval = 1, title = "From Day", minval = 1, maxval = 31) 
+fromMonth = input(defval = 1, title = "From Month", minval = 1, maxval = 12) 
+fromYear = input(defval = 2019, title = "From Year", minval = 1970) 
+  
+// To Date Inputs 
+toDay = input(defval = 1, title = "To Day", minval = 1, maxval = 31) 
+toMonth = input(defval = 1, title = "To Month", minval = 1, maxval = 12) 
+toYear = input(defval = 2100, title = "To Year", minval = 1970) 
+  
+// Calculate start/end date and time condition 
+startDate = timestamp(fromYear, fromMonth, fromDay, 00, 00) 
+finishDate = timestamp(toYear, toMonth, toDay, 00, 00) 
+time_cond = time >= startDate and time <= finishDate 
+  
+//////////////////////////////////////////////////////////////////////////////// 
+
+up15on = input(true, title="15 Minute Opening Range High")   
+down15on = input(true, title="15 Minute Opening Range Low") 
+
+
+
+is_newbar(res, sess) =>   
+    t = time(res, sess)   
+    na(t[1]) and not na(t) or t[1] < t   
+
+var float start_high= na
+var float start_low = na
+
+var int second_hour=na
+var int second_min=na
+var int thrid_hour=na
+var int third_min=na
+var int fourth_hour=na
+var int fourth_min=na
+
+var int start_entry=na
+var int close_entry=na
+    
+
+adopt(r, s) => security(syminfo.tickerid, r, s)
+highTimeFrame = input("D", type=input.resolution)
+
+i_sessSpec = input("0915-1530", type=input.session)
+i_start_high = valuewhen(is_newbar(highTimeFrame,i_sessSpec),high,0)    
+i_start_low = valuewhen(is_newbar(highTimeFrame, i_sessSpec),low,0)
+
+uk_sessSpec = input("0800-1600", type=input.session)
+uk_start_high = valuewhen(is_newbar(highTimeFrame,uk_sessSpec),high,0)    
+uk_start_low = valuewhen(is_newbar(highTimeFrame, uk_sessSpec),low,0)
+
+us_sessSpec = input("0930-1600", type=input.session)
+us_start_high = valuewhen(is_newbar(highTimeFrame,us_sessSpec),high,0)    
+us_start_low = valuewhen(is_newbar(highTimeFrame, us_sessSpec),low,0)
+
+if(syminfo.currency == 'GBX') or (syminfo.currency == 'GBP')
+    start_high := adopt('15', uk_start_high)
+    start_low := adopt('15', uk_start_low)
+    second_hour:=08
+    second_min:=15
+    thrid_hour:=08
+    third_min:=30
+    fourth_hour:=08
+    fourth_min:=45
+if(syminfo.currency == 'INR')
+    start_high := adopt('15', i_start_high)
+    start_low := adopt('15', i_start_low)
+    second_hour:=09
+    second_min:=30
+    thrid_hour:=09
+    third_min:=45
+    fourth_hour:=10
+    fourth_min:=00
+if(syminfo.currency == 'USD')
+    start_high := adopt('15', us_start_high)
+    start_low := adopt('15', us_start_low)
+    second_hour:=09
+    second_min:=45
+    thrid_hour:=10
+    third_min:=00
+    fourth_hour:=10
+    fourth_min:=15
+
+//Plot   
+up15 = plot(up15on ? start_high: na, color = #009900, linewidth=1)    
+down15 = plot(down15on ? start_low: na, color = #ff0000, linewidth=1)
+
+//Second Condition
+h = security(syminfo.tickerid, "15", high, lookahead=true)   
+l = security(syminfo.tickerid, "15", low, lookahead=true)   
+   
+get_high_low(_hour, _minute) =>   
+    locHigh = 0.0   
+    locLow = 0.0   
+    if hour == _hour and minute == _minute   
+        locHigh := h   
+        locLow := l   
+    else   
+        locHigh := locHigh[1]   
+        locLow := locLow[1]   
+       
+    [locHigh,locLow]   
+   
+[locHigh_2,locLow_2] = get_high_low(second_hour,second_min)
+[locHigh_3,locLow_3] = get_high_low(thrid_hour,third_min)   
+[locHigh_4,locLow_4] = get_high_low(fourth_hour,fourth_min)   
+ 
+//plotshape(plotSignals ? crossover(locHigh_3, start_high) : na, style=shape.triangleup, location=location.belowbar, color=color.blue, text="Buy", textcolor=color.blue)   
+//plotshape(plotSignals ? crossover(start_low, locLow_3) : na, style=shape.triangledown, location=location.abovebar, color=color.red, text="Sell", textcolor=color.red) 
+
+// Strategy Entry-Exit condition 
+ 
+if (crossover(locHigh_3, start_high)) and (locHigh_2 <  start_high and locLow_2 > start_low) 
+	strategy.entry(id = "long_entry", long = true) 
+	
+	
+if (crossover(start_low, locLow_3)) and (locHigh_2 <  start_high and locLow_2 > start_low) 
+	strategy.entry(id = "short_entry", long = false) 
+
+strategy.close(id = "short_entry", when = (crossover(high,locHigh_3)))
+strategy.close(id = "long_entry", when = (crossover(locLow_3,low)))
+
+
+if (hour == 15) 
+    strategy.close_all()
