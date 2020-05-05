@@ -1,0 +1,15 @@
+10.00AM Strategy
+
+1. Mark First 15Min high-Low
+
+2. Second 15min candle high<Start_high and low>Start_low
+(Second candle should be formed between 1st candle)
+
+3. Third candle should cross Start_high or Start_low.
+
+
+Entry Condition -
+
+Buy - if 3rd candle close greater than 1st candle high then buy at high of 3rd candle and stoploss should be low of third candle
+
+Buy - if 3rd candle close less than 1st candle low then sell at low of 3rd candle and stoploss should be high of third candle
